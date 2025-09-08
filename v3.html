@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuiA - Gerenciamento Ágil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .sidebar-collapsed {
+            width: 80px;
+        }
+        
+        .sidebar-expanded {
+            width: 240px;
+        }
+        
+        .content-collapsed {
+            margin-left: 80px;
+        }
+        
+        .content-expanded {
+            margin-left: 240px;
+        }
+        
+        .kanban-card {
+            transition: all 0.3s ease;
+        }
+        
+        .kanban-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .gantt-bar {
+            background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+            border-radius: 4px;
+            height: 24px;
+            position: relative;
+        }
+        
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            background-color: #F3F4F6;
+        }
+        
+        .project-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .project-card:hover {
+            border-left-color: #3B82F6;
+            transform: translateX(4px);
+        }
+        
+        .team-avatar {
+            transition: all 0.2s ease;
+        }
+        
+        .team-avatar:hover {
+            transform: scale(1.1);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            margin: 0.125rem;
+            background-color: #E5E7EB;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+        }
+
+        .tag-input {
+            border: none;
+            outline: none;
+            background: transparent;
+            min-width: 60px;
+        }
+
+        .priority-tag {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .priority-tag:hover {
+            transform: scale(1.05);
+        }
+
+        .priority-tag.selected {
+            ring: 2px;
+            ring-color: #3B82F6;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow-stage {
+            min-height: 200px;
+            border: 2px dashed #D1D5DB;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 0.5rem;
+            background-color: #F9FAFB;
+        }
+
+        .flow-stage.active {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- Sidebar -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full bg-white shadow-lg z-50 transition-all duration-300 sidebar-expanded">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h1 id="logo" class="text-2xl font-bold text-blue-600">GuiA</h1>
+                <button id="toggleSidebar" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-bars text-gray-600"></i>
+                </button>
+            </div>
+        </div>
+        
+        <nav class="mt-8">
+            <div class="px-4 space-y-2">
+                <a href="#" onclick="showSection('inicio')" class="nav-item flex flex-col items-center p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                    <i class="fas fa-home text-xl text-gray-600 group-hover:text-blue-600 mb-2"></i>
+                    <span class="nav-text text-sm text-gray-600 group-hover:text-blue-600">Início</span>
+                </a>
+                
+                <a href="#" onclick="showSection('tarefas')" class="nav-item flex flex-col items-center p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                    <i class="fas fa-tasks text-xl text-gray-600 group-hover:text-blue-600 mb-2"></i>
+                    <span class="nav-text text-sm text-gray-600 group-hover:text-blue-600">Tarefas</span>
+                </a>
+                
+                <a href="#" onclick="showSection('calendario')" class="nav-item flex flex-col items-center p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                    <i class="fas fa-calendar text-xl text-gray-600 group-hover:text-blue-600 mb-2"></i>
+                    <span class="nav-text text-sm text-gray-600 group-hover:text-blue-600">Calendário</span>
+                </a>
+                
+                <a href="#" onclick="showSection('projetos')" class="nav-item flex flex-col items-center p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                    <i class="fas fa-project-diagram text-xl text-gray-600 group-hover:text-blue-600 mb-2"></i>
+                    <span class="nav-text text-sm text-gray-600 group-hover:text-blue-600">Projetos</span>
+                </a>
+                
+                <a href="#" onclick="showSection('fluxos')" class="nav-item flex flex-col items-center p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                    <i class="fas fa-stream text-xl text-gray-600 group-hover:text-blue-600 mb-2"></i>
+                    <span class="nav-text text-sm text-gray-600 group-hover:text-blue-600">Fluxos</span>
+                </a>
+                
+                <a href="#" onclick="showSection('equipes')" class="nav-item flex flex-col items-center p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                    <i class="fas fa-users text-xl text-gray-600 group-hover:text-blue-600 mb-2"></i>
+                    <span class="nav-text text-sm text-gray-600 group-hover:text-blue-600">Equipes</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="transition-all duration-300 content-expanded">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 id="pageTitle" class="text-2xl font-semibold text-gray-800">Dashboard</h2>
+                    <p id="pageSubtitle" class="text-gray-600 mt-1">Visão geral dos seus projetos</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button id="createBtn" class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>
+                            Criar
+                            <i class="fas fa-chevron-down ml-2 text-sm"></i>
+                        </button>
+                        <div id="createDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 hidden">
+                            <div class="py-2">
+                                <a href="#" onclick="openModal('tarefaModal')" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-tasks text-blue-600 mr-3 w-4"></i>
+                                    Nova Tarefa
+                                </a>
+                                <a href="#" onclick="openModal('kanbanModal')" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-columns text-purple-600 mr-3 w-4"></i>
+                                    Quadro Kanban
+                                </a>
+                                <a href="#" onclick="openModal('projetoModal')" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-project-diagram text-green-600 mr-3 w-4"></i>
+                                    Novo Projeto
+                                </a>
+                                <a href="#" onclick="openModal('fluxoModal')" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-stream text-orange-600 mr-3 w-4"></i>
+                                    Novo Fluxo
+                                </a>
+                                <a href="#" onclick="openModal('equipeModal')" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-users text-red-600 mr-3 w-4"></i>
+                                    Nova Equipe
+                                </a>
+                                <a href="#" onclick="openModal('usuarioModal')" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-user-plus text-indigo-600 mr-3 w-4"></i>
+                                    Novo Usuário
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-bell text-gray-600"></i>
+                    </button>
+                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span class="text-white text-sm font-medium">U</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <main class="p-6">
+            <!-- Início Section -->
+            <div id="inicio" class="section fade-in">
+                <!-- Busca e Filtros Globais -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div class="flex-1 max-w-md">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" placeholder="Buscar projetos, tarefas, equipes..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option>Todos os Status</option>
+                                <option>Em Andamento</option>
+                                <option>Concluído</option>
+                                <option>Atrasado</option>
+                                <option>Não Iniciado</option>
+                            </select>
+                            <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option>Todas as Prioridades</option>
+                                <option>Crítica</option>
+                                <option>Alta</option>
+                                <option>Média</option>
+                                <option>Baixa</option>
+                            </select>
+                            <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option>Todos os Responsáveis</option>
+                                <option>João Silva</option>
+                                <option>Ana Santos</option>
+                                <option>Carlos Oliveira</option>
+                            </select>
+                            <input type="date" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPIs Principais -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Projetos -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-600">Projetos</h3>
+                            <i class="fas fa-project-diagram text-blue-600"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-green-600">Em Andamento</span>
+                                <span class="font-medium">8</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-blue-600">Concluídos</span>
+                                <span class="font-medium">23</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-red-600">Atrasados</span>
+                                <span class="font-medium">3</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Não Iniciados</span>
+                                <span class="font-medium">2</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progresso Médio -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-600">Progresso Médio</h3>
+                            <i class="fas fa-chart-line text-green-600"></i>
+                        </div>
+                        <div class="text-center">
+                            <div class="relative w-20 h-20 mx-auto mb-2">
+                                <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
+                                    <path class="text-gray-200" stroke="currentColor" stroke-width="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                    <path class="text-green-500" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="72, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-xl font-bold text-gray-800">72%</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-600">dos projetos</p>
+                        </div>
+                    </div>
+
+                    <!-- Tarefas -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-600">Tarefas</h3>
+                            <i class="fas fa-tasks text-orange-600"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-yellow-600">Abertas</span>
+                                <span class="font-medium">47</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-green-600">Concluídas</span>
+                                <span class="font-medium">156</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-red-600">Atrasadas</span>
+                                <span class="font-medium">12</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Não Iniciadas</span>
+                                <span class="font-medium">8</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Taxa de Cumprimento -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-600">SLA - Cumprimento</h3>
+                            <i class="fas fa-clock text-purple-600"></i>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-green-600 mb-1">89%</div>
+                            <p class="text-xs text-gray-600">dos prazos cumpridos</p>
+                            <div class="mt-3 bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 89%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Segunda linha de KPIs -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Capacidade de Equipe -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Capacidade de Equipe</h3>
+                            <i class="fas fa-users text-blue-600"></i>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm">Frontend</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-500 h-2 rounded-full" style="width: 75%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-600">75%</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm">Backend</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 90%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-600">90%</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm">Design</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-500 h-2 rounded-full" style="width: 95%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-600">95%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fluxos Ativos -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Fluxos Ativos</h3>
+                            <i class="fas fa-stream text-purple-600"></i>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                                <span class="text-sm font-medium">Desenvolvimento</span>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Ativo</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-yellow-50 rounded-lg">
+                                <span class="text-sm font-medium">Design</span>
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Bloqueado</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+                                <span class="text-sm font-medium">Marketing</span>
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Em Execução</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alertas e Notificações -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Alertas Críticos</h3>
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-start space-x-3 p-2 bg-red-50 rounded-lg">
+                                <i class="fas fa-clock text-red-500 text-sm mt-1"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-red-800">Prazo crítico</p>
+                                    <p class="text-xs text-red-600">Sistema CRM - entrega hoje</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3 p-2 bg-yellow-50 rounded-lg">
+                                <i class="fas fa-user-clock text-yellow-500 text-sm mt-1"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-yellow-800">Aprovação pendente</p>
+                                    <p class="text-xs text-yellow-600">Design do App Mobile</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3 p-2 bg-orange-50 rounded-lg">
+                                <i class="fas fa-exclamation text-orange-500 text-sm mt-1"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-orange-800">Equipe sobrecarregada</p>
+                                    <p class="text-xs text-orange-600">Design - 95% capacidade</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visão Rápida de Agenda e Atalhos -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- Agenda -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Próximos Marcos</h3>
+                            <button onclick="showSection('calendario')" class="text-blue-600 hover:text-blue-800 text-sm">
+                                Ver calendário completo
+                            </button>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
+                                <div class="text-center">
+                                    <div class="text-xs text-red-600 font-medium">HOJE</div>
+                                    <div class="text-lg font-bold text-red-800">15</div>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-red-800">Entrega Sistema CRM</p>
+                                    <p class="text-sm text-red-600">Versão 2.0 - Cliente ABC</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
+                                <div class="text-center">
+                                    <div class="text-xs text-yellow-600 font-medium">SEX</div>
+                                    <div class="text-lg font-bold text-yellow-800">17</div>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-yellow-800">Review Design App</p>
+                                    <p class="text-sm text-yellow-600">Apresentação para stakeholders</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                                <div class="text-center">
+                                    <div class="text-xs text-blue-600 font-medium">SEG</div>
+                                    <div class="text-lg font-bold text-blue-800">20</div>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-blue-800">Sprint Planning</p>
+                                    <p class="text-sm text-blue-600">Equipe Frontend - Sprint 12</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Atalhos de Navegação -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4">Navegação Rápida</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="showSection('tarefas')" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                                <i class="fas fa-columns text-2xl text-blue-600 mb-2"></i>
+                                <span class="text-sm font-medium text-blue-800">Kanban</span>
+                            </button>
+                            <button onclick="showSection('projetos')" class="flex flex-col items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                                <i class="fas fa-project-diagram text-2xl text-green-600 mb-2"></i>
+                                <span class="text-sm font-medium text-green-800">Projetos</span>
+                            </button>
+                            <button onclick="showSection('equipes')" class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                                <i class="fas fa-users text-2xl text-purple-600 mb-2"></i>
+                                <span class="text-sm font-medium text-purple-800">Equipes</span>
+                            </button>
+                            <button onclick="showSection('fluxos')" class="flex flex-col items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+                                <i class="fas fa-stream text-2xl text-orange-600 mb-2"></i>
+                                <span class="text-sm font-medium text-orange-800">Fluxos</span>
+                            </button>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <button class="w-full flex items-center justify-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <i class="fas fa-chart-bar text-gray-600 mr-2"></i>
+                                <span class="text-sm font-medium text-gray-700">Relatórios Detalhados</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ranking de Performance e Projetos por Gerente -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Ranking de Performance -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4">Ranking de Performance</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                                        <span class="text-white font-bold text-sm">1</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Equipe Frontend</p>
+                                        <p class="text-sm text-gray-600">João Silva - Gerente</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-green-600">94%</p>
+                                    <p class="text-xs text-gray-600">eficiência</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+                                        <span class="text-white font-bold text-sm">2</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Equipe Backend</p>
+                                        <p class="text-sm text-gray-600">Ana Santos - Gerente</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-green-600">87%</p>
+                                    <p class="text-xs text-gray-600">eficiência</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-orange-400 rounded-full flex items-center justify-center">
+                                        <span class="text-white font-bold text-sm">3</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Equipe Design</p>
+                                        <p class="text-sm text-gray-600">Carlos Oliveira - Gerente</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-yellow-600">78%</p>
+                                    <p class="text-xs text-gray-600">eficiência</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Projetos por Gerente -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4">Projetos por Gerente</h3>
+                        <div class="space-y-4">
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                            <span class="text-white font-medium text-sm">JS</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">João Silva</p>
+                                            <p class="text-sm text-gray-600">3 projetos ativos</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">92% no prazo</span>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span>Sistema CRM</span>
+                                        <span class="text-green-600">85%</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span>App Mobile</span>
+                                        <span class="text-yellow-600">62%</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span>Portal Cliente</span>
+                                        <span class="text-blue-600">30%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                                            <span class="text-white font-medium text-sm">AS</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Ana Santos</p>
+                                            <p class="text-sm text-gray-600">2 projetos ativos</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">75% no prazo</span>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span>API Gateway</span>
+                                        <span class="text-green-600">90%</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span>Microserviços</span>
+                                        <span class="text-orange-600">45%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarefas Section -->
+            <div id="tarefas" class="section hidden">
+                <div class="mb-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="flex space-x-2">
+                            <button onclick="showTaskView('kanban')" id="kanbanBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-columns mr-2"></i>Kanban
+                            </button>
+                            <button onclick="showTaskView('gantt')" id="ganttBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                                <i class="fas fa-chart-gantt mr-2"></i>Gantt
+                            </button>
+                        </div>
+                        <button onclick="openModal('tarefaModal')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Nova Tarefa
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kanban View -->
+                <div id="kanbanView" class="task-view">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-4 border-b border-gray-200">
+                                <h3 class="font-semibold text-gray-800 flex items-center">
+                                    <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                    A Fazer <span class="ml-2 text-sm bg-gray-100 px-2 py-1 rounded-full">4</span>
+                                </h3>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <div class="kanban-card bg-white border border-gray-200 rounded-lg p-4 cursor-pointer">
+                                    <h4 class="font-medium text-gray-800 mb-2">Implementar login</h4>
+                                    <p class="text-sm text-gray-600 mb-3">Criar sistema de autenticação com JWT</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex -space-x-2">
+                                            <div class="w-6 h-6 bg-blue-500 rounded-full border-2 border-white"></div>
+                                            <div class="w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <span class="text-xs text-gray-500">Alta</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="kanban-card bg-white border border-gray-200 rounded-lg p-4 cursor-pointer">
+                                    <h4 class="font-medium text-gray-800 mb-2">Design do dashboard</h4>
+                                    <p class="text-sm text-gray-600 mb-3">Criar wireframes e protótipos</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex -space-x-2">
+                                            <div class="w-6 h-6 bg-purple-500 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <span class="text-xs text-gray-500">Média</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-4 border-b border-gray-200">
+                                <h3 class="font-semibold text-gray-800 flex items-center">
+                                    <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                                    Em Progresso <span class="ml-2 text-sm bg-gray-100 px-2 py-1 rounded-full">3</span>
+                                </h3>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <div class="kanban-card bg-white border border-gray-200 rounded-lg p-4 cursor-pointer">
+                                    <h4 class="font-medium text-gray-800 mb-2">API de usuários</h4>
+                                    <p class="text-sm text-gray-600 mb-3">Desenvolver endpoints REST</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex -space-x-2">
+                                            <div class="w-6 h-6 bg-blue-500 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <span class="text-xs text-gray-500">Alta</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-4 border-b border-gray-200">
+                                <h3 class="font-semibold text-gray-800 flex items-center">
+                                    <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                    Concluído <span class="ml-2 text-sm bg-gray-100 px-2 py-1 rounded-full">7</span>
+                                </h3>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <div class="kanban-card bg-white border border-gray-200 rounded-lg p-4 cursor-pointer">
+                                    <h4 class="font-medium text-gray-800 mb-2">Setup do projeto</h4>
+                                    <p class="text-sm text-gray-600 mb-3">Configuração inicial e dependências</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex -space-x-2">
+                                            <div class="w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <span class="text-xs text-gray-500">Baixa</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gantt View -->
+                <div id="ganttView" class="task-view hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold">Cronograma do Projeto</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <div class="min-w-full">
+                                <div class="grid grid-cols-12 gap-1 p-4 bg-gray-50 text-sm font-medium text-gray-600">
+                                    <div class="col-span-3">Tarefa</div>
+                                    <div class="col-span-9 grid grid-cols-7 gap-1 text-center">
+                                        <div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div><div>Dom</div>
+                                    </div>
+                                </div>
+                                <div class="p-4 space-y-3">
+                                    <div class="grid grid-cols-12 gap-1 items-center">
+                                        <div class="col-span-3 font-medium">Setup do projeto</div>
+                                        <div class="col-span-9 grid grid-cols-7 gap-1">
+                                            <div class="gantt-bar col-span-2"></div>
+                                            <div class="col-span-5"></div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-12 gap-1 items-center">
+                                        <div class="col-span-3 font-medium">Design UI/UX</div>
+                                        <div class="col-span-9 grid grid-cols-7 gap-1">
+                                            <div class="col-span-1"></div>
+                                            <div class="gantt-bar col-span-3 bg-gradient-to-r from-purple-500 to-purple-600"></div>
+                                            <div class="col-span-3"></div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-12 gap-1 items-center">
+                                        <div class="col-span-3 font-medium">Desenvolvimento Backend</div>
+                                        <div class="col-span-9 grid grid-cols-7 gap-1">
+                                            <div class="col-span-2"></div>
+                                            <div class="gantt-bar col-span-4 bg-gradient-to-r from-green-500 to-green-600"></div>
+                                            <div class="col-span-1"></div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-12 gap-1 items-center">
+                                        <div class="col-span-3 font-medium">Desenvolvimento Frontend</div>
+                                        <div class="col-span-9 grid grid-cols-7 gap-1">
+                                            <div class="col-span-3"></div>
+                                            <div class="gantt-bar col-span-4 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendário Section -->
+            <div id="calendario" class="section hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">Janeiro 2024</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <i class="fas fa-chevron-left text-gray-600"></i>
+                                </button>
+                                <button class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <i class="fas fa-chevron-right text-gray-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-7 gap-1 mb-4">
+                            <div class="p-3 text-center text-sm font-medium text-gray-600">Dom</div>
+                            <div class="p-3 text-center text-sm font-medium text-gray-600">Seg</div>
+                            <div class="p-3 text-center text-sm font-medium text-gray-600">Ter</div>
+                            <div class="p-3 text-center text-sm font-medium text-gray-600">Qua</div>
+                            <div class="p-3 text-center text-sm font-medium text-gray-600">Qui</div>
+                            <div class="p-3 text-center text-sm font-medium text-gray-600">Sex</div>
+                            <div class="p-3 text-center text-sm font-medium text-gray-600">Sáb</div>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1">
+                            <!-- Calendar days would be generated here -->
+                            <div class="calendar-day p-3 text-center text-sm text-gray-400 cursor-pointer rounded-lg">31</div>
+                            <div class="calendar-day p-3 text-center text-sm cursor-pointer rounded-lg hover:bg-blue-50">1</div>
+                            <div class="calendar-day p-3 text-center text-sm cursor-pointer rounded-lg hover:bg-blue-50">2</div>
+                            <div class="calendar-day p-3 text-center text-sm cursor-pointer rounded-lg hover:bg-blue-50 relative">
+                                3
+                                <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"></div>
+                            </div>
+                            <div class="calendar-day p-3 text-center text-sm cursor-pointer rounded-lg hover:bg-blue-50">4</div>
+                            <div class="calendar-day p-3 text-center text-sm cursor-pointer rounded-lg hover:bg-blue-50">5</div>
+                            <div class="calendar-day p-3 text-center text-sm cursor-pointer rounded-lg hover:bg-blue-50">6</div>
+                            <!-- More days... -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projetos Section -->
+            <div id="projetos" class="section hidden">
+                <div class="mb-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="flex space-x-2">
+                            <button onclick="showProjectView('fluxos')" id="fluxosBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                Por Fluxos
+                            </button>
+                            <button onclick="showProjectView('gerentes')" id="gerentesBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                                Por Gerentes
+                            </button>
+                        </div>
+                        <button onclick="openModal('projetoModal')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Novo Projeto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Por Fluxos -->
+                <div id="fluxosView" class="project-view">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-6 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold flex items-center">
+                                    <i class="fas fa-code text-blue-600 mr-2"></i>
+                                    Desenvolvimento
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="project-card p-4 bg-gray-50 rounded-lg cursor-pointer">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium">Sistema CRM</h4>
+                                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Ativo</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-3">Sistema de gestão de relacionamento com clientes</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex -space-x-2">
+                                            <div class="w-6 h-6 bg-blue-500 rounded-full border-2 border-white"></div>
+                                            <div class="w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
+                                            <div class="w-6 h-6 bg-purple-500 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <span class="text-sm text-gray-600">85%</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="project-card p-4 bg-gray-50 rounded-lg cursor-pointer">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium">App Mobile</h4>
+                                        <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Em Progresso</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-3">Aplicativo móvel para iOS e Android</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex -space-x-2">
+                                            <div class="w-6 h-6 bg-orange-500 rounded-full border-2 border-white"></div>
+                                            <div class="w-6 h-6 bg-red-500 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <span class="text-sm text-gray-600">62%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-6 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold flex items-center">
+                                    <i class="fas fa-paint-brush text-purple-600 mr-2"></i>
+                                    Design
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="project-card p-4 bg-gray-50 rounded-lg cursor-pointer">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium">Redesign Website</h4>
+                                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Planejamento</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-3">Nova identidade visual do site institucional</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex -space-x-2">
+                                            <div class="w-6 h-6 bg-purple-500 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <span class="text-sm text-gray-600">25%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Por Gerentes -->
+                <div id="gerentesView" class="project-view hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-6 border-b border-gray-200">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                                        <span class="text-white font-medium">JS</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold">João Silva</h3>
+                                        <p class="text-sm text-gray-600">Gerente de Projetos</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="project-card p-4 bg-gray-50 rounded-lg cursor-pointer">
+                                    <h4 class="font-medium mb-2">Sistema CRM</h4>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">3 membros</span>
+                                        <span class="text-sm text-gray-600">85%</span>
+                                    </div>
+                                </div>
+                                <div class="project-card p-4 bg-gray-50 rounded-lg cursor-pointer">
+                                    <h4 class="font-medium mb-2">App Mobile</h4>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">2 membros</span>
+                                        <span class="text-sm text-gray-600">62%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-6 border-b border-gray-200">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mr-3">
+                                        <span class="text-white font-medium">AS</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold">Ana Santos</h3>
+                                        <p class="text-sm text-gray-600">Gerente de Design</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="project-card p-4 bg-gray-50 rounded-lg cursor-pointer">
+                                    <h4 class="font-medium mb-2">Redesign Website</h4>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">1 membro</span>
+                                        <span class="text-sm text-gray-600">25%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fluxos Section -->
+            <div id="fluxos" class="section hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold flex items-center">
+                                <i class="fas fa-code text-blue-600 mr-2"></i>
+                                Desenvolvimento
+                            </h3>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-600 mb-4">Fluxo para projetos de desenvolvimento de software</p>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                <span>Backlog</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                                <span>Em Desenvolvimento</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                <span>Em Teste</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span>Concluído</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>3 projetos ativos</span>
+                            <span>12 tarefas</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold flex items-center">
+                                <i class="fas fa-paint-brush text-purple-600 mr-2"></i>
+                                Design
+                            </h3>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-600 mb-4">Fluxo para projetos de design e UX/UI</p>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                                <span>Briefing</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                                <span>Conceito</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                <span>Aprovação</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span>Finalizado</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>1 projeto ativo</span>
+                            <span>5 tarefas</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold flex items-center">
+                                <i class="fas fa-bullhorn text-green-600 mr-2"></i>
+                                Marketing
+                            </h3>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-600 mb-4">Fluxo para campanhas e projetos de marketing</p>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                                <span>Planejamento</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                                <span>Produção</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                <span>Revisão</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span>Publicado</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>2 projetos ativos</span>
+                            <span>8 tarefas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <button onclick="openModal('fluxoModal')" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Criar Novo Fluxo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Equipes Section -->
+            <div id="equipes" class="section hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Frontend</h3>
+                            <span class="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">4 membros</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">Equipe responsável pelo desenvolvimento da interface</p>
+                        <div class="flex -space-x-2 mb-4">
+                            <div class="team-avatar w-10 h-10 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">JS</span>
+                            </div>
+                            <div class="team-avatar w-10 h-10 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">AS</span>
+                            </div>
+                            <div class="team-avatar w-10 h-10 bg-purple-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">MO</span>
+                            </div>
+                            <div class="team-avatar w-10 h-10 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">LC</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>3 projetos ativos</span>
+                            <span>15 tarefas</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Backend</h3>
+                            <span class="text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">3 membros</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">Equipe responsável pela lógica de negócio e APIs</p>
+                        <div class="flex -space-x-2 mb-4">
+                            <div class="team-avatar w-10 h-10 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">RS</span>
+                            </div>
+                            <div class="team-avatar w-10 h-10 bg-yellow-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">TM</span>
+                            </div>
+                            <div class="team-avatar w-10 h-10 bg-indigo-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">FP</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>2 projetos ativos</span>
+                            <span>12 tarefas</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Design</h3>
+                            <span class="text-sm bg-purple-100 text-purple-800 px-2 py-1 rounded-full">2 membros</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">Equipe de UX/UI e design gráfico</p>
+                        <div class="flex -space-x-2 mb-4">
+                            <div class="team-avatar w-10 h-10 bg-pink-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">CM</span>
+                            </div>
+                            <div class="team-avatar w-10 h-10 bg-teal-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">BL</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>1 projeto ativo</span>
+                            <span>6 tarefas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <button onclick="openModal('equipeModal')" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Criar Nova Equipe
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Backdrop -->
+    <div id="modalBackdrop" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop z-50 hidden"></div>
+
+    <!-- Modal: Criar Tarefa -->
+    <div id="tarefaModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-800">Nova Tarefa</h2>
+                    <button onclick="closeModal('tarefaModal')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Tarefa</label>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Digite o nome da tarefa">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo da Tarefa</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>Desenvolvimento</option>
+                                <option>Design</option>
+                                <option>Teste</option>
+                                <option>Documentação</option>
+                                <option>Reunião</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Prioridade</label>
+                        <div class="flex space-x-2">
+                            <button type="button" onclick="selectPriority(this, 'baixa')" class="priority-tag px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Baixa</button>
+                            <button type="button" onclick="selectPriority(this, 'media')" class="priority-tag px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Média</button>
+                            <button type="button" onclick="selectPriority(this, 'alta')" class="priority-tag px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">Alta</button>
+                            <button type="button" onclick="selectPriority(this, 'critica')" class="priority-tag px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">Crítica</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+                        <textarea rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Descreva a tarefa..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Lista de Verificação</label>
+                        <div id="checklistContainer" class="space-y-2">
+                            <div class="checklist-item">
+                                <input type="checkbox" class="mr-2">
+                                <input type="text" class="flex-1 px-2 py-1 border border-gray-300 rounded" placeholder="Item da lista">
+                                <button type="button" onclick="removeChecklistItem(this)" class="ml-2 text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addChecklistItem()" class="mt-2 text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-plus mr-1"></i>Adicionar item
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Links/Anexos</label>
+                        <input type="url" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="https://...">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Responsável</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>João Silva</option>
+                                <option>Ana Santos</option>
+                                <option>Carlos Oliveira</option>
+                                <option>Maria Costa</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Product Owner</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>Ana Santos</option>
+                                <option>Pedro Lima</option>
+                                <option>Lucia Ferreira</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
+                            <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Data Final</label>
+                            <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Gerente do Projeto</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>João Silva</option>
+                                <option>Ana Santos</option>
+                                <option>Roberto Mendes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fluxo</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>Desenvolvimento</option>
+                                <option>Design</option>
+                                <option>Marketing</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                        <div id="tagsContainer" class="flex flex-wrap border border-gray-300 rounded-lg p-2 min-h-[40px]">
+                            <input type="text" id="tagInput" class="tag-input" placeholder="Digite uma tag e pressione Enter" onkeypress="addTag(event)">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <button type="button" onclick="closeModal('tarefaModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Criar Tarefa
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Criar Kanban -->
+    <div id="kanbanModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-800">Novo Quadro Kanban</h2>
+                    <button onclick="closeModal('kanbanModal')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Quadro</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Digite o nome do quadro Kanban">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+                        <textarea rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Descreva o propósito do quadro..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Colunas do Kanban</label>
+                        <div id="kanbanColumns" class="space-y-3">
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <span class="text-lg">🎯</span>
+                                <input type="text" value="Backlog" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+                                <button type="button" onclick="removeKanbanColumn(this)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <span class="text-lg">🚀</span>
+                                <input type="text" value="A Fazer" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+                                <button type="button" onclick="removeKanbanColumn(this)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <span class="text-lg">⚡</span>
+                                <input type="text" value="Em Andamento" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+                                <button type="button" onclick="removeKanbanColumn(this)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <span class="text-lg">❄️</span>
+                                <input type="text" value="Geladeira" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+                                <button type="button" onclick="removeKanbanColumn(this)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <span class="text-lg">✔️</span>
+                                <input type="text" value="A Validar" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+                                <button type="button" onclick="removeKanbanColumn(this)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <span class="text-lg">🏆</span>
+                                <input type="text" value="Feito" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+                                <button type="button" onclick="removeKanbanColumn(this)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addKanbanColumn()" class="mt-3 text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-plus mr-1"></i>Adicionar coluna
+                        </button>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <button type="button" onclick="closeModal('kanbanModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Criar Quadro
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Criar Projeto -->
+    <div id="projetoModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-800">Novo Projeto</h2>
+                    <button onclick="closeModal('projetoModal')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Projeto</label>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Digite o nome do projeto">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nome do cliente">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Área de Origem</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option>Tecnologia</option>
+                            <option>Marketing</option>
+                            <option>Vendas</option>
+                            <option>Operações</option>
+                            <option>RH</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Descrição do Problema/Necessidade</label>
+                        <textarea rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Descreva o problema ou necessidade que o projeto visa resolver..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Links/Anexos</label>
+                        <input type="url" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="https://...">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Prazo</label>
+                            <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Beneficiados</label>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Quem será beneficiado">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Impacto Esperado</label>
+                        <textarea rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Descreva o impacto esperado do projeto..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="toggleCategory(this)" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">Agilidade</button>
+                            <button type="button" onclick="toggleCategory(this)" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">Automação</button>
+                            <button type="button" onclick="toggleCategory(this)" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">Dados</button>
+                            <button type="button" onclick="toggleCategory(this)" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">Gestão/Planejamento</button>
+                            <button type="button" onclick="toggleCategory(this)" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">IA</button>
+                            <button type="button" onclick="toggleCategory(this)" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">Suporte/Manutenção</button>
+                            <button type="button" onclick="toggleCategory(this)" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">Transversalidade</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                        <div id="projectTagsContainer" class="flex flex-wrap border border-gray-300 rounded-lg p-2 min-h-[40px]">
+                            <input type="text" id="projectTagInput" class="tag-input" placeholder="Digite uma tag e pressione Enter" onkeypress="addProjectTag(event)">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fluxo de Trabalho</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>Desenvolvimento</option>
+                                <option>Design</option>
+                                <option>Marketing</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fluxo das Tarefas</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>Kanban Padrão</option>
+                                <option>Kanban Desenvolvimento</option>
+                                <option>Kanban Design</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Prioridade</label>
+                        <div class="flex space-x-2">
+                            <button type="button" onclick="selectProjectPriority(this, 'baixa')" class="priority-tag px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Baixa</button>
+                            <button type="button" onclick="selectProjectPriority(this, 'media')" class="priority-tag px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Média</button>
+                            <button type="button" onclick="selectProjectPriority(this, 'alta')" class="priority-tag px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">Alta</button>
+                            <button type="button" onclick="selectProjectPriority(this, 'critica')" class="priority-tag px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">Crítica</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Equipe</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>Frontend</option>
+                                <option>Backend</option>
+                                <option>Design</option>
+                                <option>Marketing</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Gerente de Projeto</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>João Silva</option>
+                                <option>Ana Santos</option>
+                                <option>Roberto Mendes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Product Owner</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>Ana Santos</option>
+                                <option>Pedro Lima</option>
+                                <option>Lucia Ferreira</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <button type="button" onclick="closeModal('projetoModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Criar Projeto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Criar Fluxo -->
+    <div id="fluxoModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-800">Novo Fluxo de Trabalho</h2>
+                    <button onclick="closeModal('fluxoModal')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Fluxo</label>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Digite o nome do fluxo">
+                        </div>
+                        <div class="flex items-center">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" checked>
+                                <span class="text-sm font-medium text-gray-700">Ativar fluxo</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Descrição do Fluxo</label>
+                        <textarea rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Descreva o propósito e funcionamento do fluxo..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-4">Etapas do Fluxo</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="flowStages">
+                            <div class="flow-stage active">
+                                <div class="flex items-center justify-between mb-3">
+                                    <input type="text" value="Planejamento" class="font-medium text-sm bg-transparent border-none outline-none">
+                                    <button type="button" onclick="removeFlowStage(this)" class="text-red-500 hover:text-red-700">
+                                        <i class="fas fa-trash text-sm"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-xs text-gray-600">Tarefas desta etapa:</div>
+                                    <div class="space-y-1">
+                                        <input type="text" placeholder="Nova tarefa..." class="w-full text-xs px-2 py-1 border border-gray-300 rounded">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flow-stage">
+                                <div class="flex items-center justify-between mb-3">
+                                    <input type="text" value="Desenvolvimento" class="font-medium text-sm bg-transparent border-none outline-none">
+                                    <button type="button" onclick="removeFlowStage(this)" class="text-red-500 hover:text-red-700">
+                                        <i class="fas fa-trash text-sm"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-xs text-gray-600">Tarefas desta etapa:</div>
+                                    <div class="space-y-1">
+                                        <input type="text" placeholder="Nova tarefa..." class="w-full text-xs px-2 py-1 border border-gray-300 rounded">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flow-stage">
+                                <div class="flex items-center justify-between mb-3">
+                                    <input type="text" value="Entrega" class="font-medium text-sm bg-transparent border-none outline-none">
+                                    <button type="button" onclick="removeFlowStage(this)" class="text-red-500 hover:text-red-700">
+                                        <i class="fas fa-trash text-sm"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-xs text-gray-600">Tarefas desta etapa:</div>
+                                    <div class="space-y-1">
+                                        <input type="text" placeholder="Nova tarefa..." class="w-full text-xs px-2 py-1 border border-gray-300 rounded">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addFlowStage()" class="mt-4 text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-plus mr-1"></i>Adicionar etapa
+                        </button>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <button type="button" onclick="closeModal('fluxoModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Criar Fluxo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Criar Equipe -->
+    <div id="equipeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-800">Nova Equipe</h2>
+                    <button onclick="closeModal('equipeModal')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Equipe</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Digite o nome da equipe">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Membros da Equipe</label>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <select class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option>Selecione um usuário</option>
+                                    <option>João Silva</option>
+                                    <option>Ana Santos</option>
+                                    <option>Carlos Oliveira</option>
+                                    <option>Maria Costa</option>
+                                </select>
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option>Função</option>
+                                    <option>Desenvolvedor</option>
+                                    <option>Designer</option>
+                                    <option>Gerente</option>
+                                    <option>Analista</option>
+                                </select>
+                                <button type="button" onclick="removeTeamMember(this)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex space-x-2">
+                            <button type="button" onclick="addTeamMember()" class="text-blue-600 hover:text-blue-800 text-sm">
+                                <i class="fas fa-plus mr-1"></i>Adicionar membro
+                            </button>
+                            <button type="button" onclick="openModal('usuarioModal')" class="text-green-600 hover:text-green-800 text-sm">
+                                <i class="fas fa-user-plus mr-1"></i>Criar usuário
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <button type="button" onclick="closeModal('equipeModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Criar Equipe
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Criar Usuário -->
+    <div id="usuarioModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-800">Novo Usuário</h2>
+                    <button onclick="closeModal('usuarioModal')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Usuário</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Digite o nome completo">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">E-mail do Usuário</label>
+                        <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="usuario@email.com">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Perfil</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option>Colaborador</option>
+                            <option>Gerente de Projetos</option>
+                            <option>Product Owner</option>
+                            <option>Cliente</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-medium text-blue-800 mb-2">Gerenciar Perfis</h4>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-blue-700">Gerente de Projetos</span>
+                                <button type="button" class="text-blue-600 hover:text-blue-800 text-sm">Editar</button>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-blue-700">Product Owner</span>
+                                <button type="button" class="text-blue-600 hover:text-blue-800 text-sm">Editar</button>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-blue-700">Colaborador</span>
+                                <button type="button" class="text-blue-600 hover:text-blue-800 text-sm">Editar</button>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-blue-700">Cliente</span>
+                                <button type="button" class="text-blue-600 hover:text-blue-800 text-sm">Editar</button>
+                            </div>
+                        </div>
+                        <button type="button" class="mt-3 text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-plus mr-1"></i>Criar novo perfil
+                        </button>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <button type="button" onclick="closeModal('usuarioModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Criar Usuário
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sidebar toggle functionality
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const logo = document.getElementById('logo');
+        const navTexts = document.querySelectorAll('.nav-text');
+        
+        let sidebarExpanded = true;
+
+        toggleBtn.addEventListener('click', () => {
+            sidebarExpanded = !sidebarExpanded;
+            
+            if (sidebarExpanded) {
+                sidebar.classList.remove('sidebar-collapsed');
+                sidebar.classList.add('sidebar-expanded');
+                mainContent.classList.remove('content-collapsed');
+                mainContent.classList.add('content-expanded');
+                logo.style.display = 'block';
+                navTexts.forEach(text => text.style.display = 'block');
+            } else {
+                sidebar.classList.remove('sidebar-expanded');
+                sidebar.classList.add('sidebar-collapsed');
+                mainContent.classList.remove('content-expanded');
+                mainContent.classList.add('content-collapsed');
+                logo.style.display = 'none';
+                navTexts.forEach(text => text.style.display = 'none');
+            }
+        });
+
+        // Section navigation
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName).classList.remove('hidden');
+            
+            // Update page title and subtitle
+            const titles = {
+                'inicio': { title: 'Dashboard', subtitle: 'Visão geral dos seus projetos' },
+                'tarefas': { title: 'Tarefas', subtitle: 'Gerencie suas tarefas e sprints' },
+                'calendario': { title: 'Calendário', subtitle: 'Visualize prazos e eventos' },
+                'projetos': { title: 'Projetos', subtitle: 'Acompanhe o progresso dos projetos' },
+                'fluxos': { title: 'Fluxos', subtitle: 'Configure workflows personalizados' },
+                'equipes': { title: 'Equipes', subtitle: 'Gerencie membros e colaboradores' }
+            };
+            
+            document.getElementById('pageTitle').textContent = titles[sectionName].title;
+            document.getElementById('pageSubtitle').textContent = titles[sectionName].subtitle;
+            
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('bg-blue-50');
+                item.querySelector('i').classList.remove('text-blue-600');
+                item.querySelector('span').classList.remove('text-blue-600');
+            });
+            
+            event.target.closest('.nav-item').classList.add('bg-blue-50');
+            event.target.closest('.nav-item').querySelector('i').classList.add('text-blue-600');
+            event.target.closest('.nav-item').querySelector('span').classList.add('text-blue-600');
+        }
+
+        // Task view switching
+        function showTaskView(viewName) {
+            document.querySelectorAll('.task-view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            
+            document.getElementById(viewName + 'View').classList.remove('hidden');
+            
+            // Update button states
+            document.getElementById('kanbanBtn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('kanbanBtn').classList.add('bg-gray-200', 'text-gray-700');
+            document.getElementById('ganttBtn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('ganttBtn').classList.add('bg-gray-200', 'text-gray-700');
+            
+            document.getElementById(viewName + 'Btn').classList.remove('bg-gray-200', 'text-gray-700');
+            document.getElementById(viewName + 'Btn').classList.add('bg-blue-600', 'text-white');
+        }
+
+        // Project view switching
+        function showProjectView(viewName) {
+            document.querySelectorAll('.project-view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            
+            document.getElementById(viewName + 'View').classList.remove('hidden');
+            
+            // Update button states
+            document.getElementById('fluxosBtn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('fluxosBtn').classList.add('bg-gray-200', 'text-gray-700');
+            document.getElementById('gerentesBtn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('gerentesBtn').classList.add('bg-gray-200', 'text-gray-700');
+            
+            document.getElementById(viewName + 'Btn').classList.remove('bg-gray-200', 'text-gray-700');
+            document.getElementById(viewName + 'Btn').classList.add('bg-blue-600', 'text-white');
+        }
+
+        // Initialize with dashboard active
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.nav-item').classList.add('bg-blue-50');
+            document.querySelector('.nav-item i').classList.add('text-blue-600');
+            document.querySelector('.nav-item span').classList.add('text-blue-600');
+        });
+
+        // Create dropdown functionality
+        const createBtn = document.getElementById('createBtn');
+        const createDropdown = document.getElementById('createDropdown');
+        let dropdownOpen = false;
+
+        createBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdownOpen = !dropdownOpen;
+            
+            if (dropdownOpen) {
+                createDropdown.classList.remove('hidden');
+                createBtn.querySelector('.fa-chevron-down').style.transform = 'rotate(180deg)';
+            } else {
+                createDropdown.classList.add('hidden');
+                createBtn.querySelector('.fa-chevron-down').style.transform = 'rotate(0deg)';
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!createBtn.contains(e.target) && !createDropdown.contains(e.target)) {
+                createDropdown.classList.add('hidden');
+                createBtn.querySelector('.fa-chevron-down').style.transform = 'rotate(0deg)';
+                dropdownOpen = false;
+            }
+        });
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById('modalBackdrop').classList.remove('hidden');
+            document.getElementById(modalId).classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            // Close dropdown
+            createDropdown.classList.add('hidden');
+            createBtn.querySelector('.fa-chevron-down').style.transform = 'rotate(0deg)';
+            dropdownOpen = false;
+        }
+
+        function closeModal(modalId) {
+            document.getElementById('modalBackdrop').classList.add('hidden');
+            document.getElementById(modalId).classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking backdrop
+        document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalBackdrop')) {
+                const openModal = document.querySelector('.fixed.inset-0.z-50:not(.hidden):not(#modalBackdrop)');
+                if (openModal) {
+                    closeModal(openModal.id);
+                }
+            }
+        });
+
+        // Priority selection
+        function selectPriority(button, priority) {
+            // Remove selected class from all priority buttons in the same container
+            const container = button.closest('div');
+            container.querySelectorAll('.priority-tag').forEach(btn => {
+                btn.classList.remove('selected', 'ring-2', 'ring-blue-500');
+            });
+            
+            // Add selected class to clicked button
+            button.classList.add('selected', 'ring-2', 'ring-blue-500');
+        }
+
+        function selectProjectPriority(button, priority) {
+            selectPriority(button, priority);
+        }
+
+        // Tag management
+        function addTag(event) {
+            if (event.key === 'Enter' && event.target.value.trim()) {
+                const container = document.getElementById('tagsContainer');
+                const tagText = event.target.value.trim();
+                
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.innerHTML = `${tagText} <button type="button" onclick="removeTag(this)" class="ml-1 text-gray-500 hover:text-gray-700">×</button>`;
+                
+                container.insertBefore(tag, event.target);
+                event.target.value = '';
+            }
+        }
+
+        function addProjectTag(event) {
+            if (event.key === 'Enter' && event.target.value.trim()) {
+                const container = document.getElementById('projectTagsContainer');
+                const tagText = event.target.value.trim();
+                
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.innerHTML = `${tagText} <button type="button" onclick="removeTag(this)" class="ml-1 text-gray-500 hover:text-gray-700">×</button>`;
+                
+                container.insertBefore(tag, event.target);
+                event.target.value = '';
+            }
+        }
+
+        function removeTag(button) {
+            button.parentElement.remove();
+        }
+
+        // Checklist management
+        function addChecklistItem() {
+            const container = document.getElementById('checklistContainer');
+            const item = document.createElement('div');
+            item.className = 'checklist-item';
+            item.innerHTML = `
+                <input type="checkbox" class="mr-2">
+                <input type="text" class="flex-1 px-2 py-1 border border-gray-300 rounded" placeholder="Item da lista">
+                <button type="button" onclick="removeChecklistItem(this)" class="ml-2 text-red-500 hover:text-red-700">
+                    <i class="fas fa-trash text-sm"></i>
+                </button>
+            `;
+            container.appendChild(item);
+        }
+
+        function removeChecklistItem(button) {
+            button.closest('.checklist-item').remove();
+        }
+
+        // Kanban column management
+        function addKanbanColumn() {
+            const container = document.getElementById('kanbanColumns');
+            const column = document.createElement('div');
+            column.className = 'flex items-center space-x-3 p-3 bg-gray-50 rounded-lg';
+            column.innerHTML = `
+                <span class="text-lg">📋</span>
+                <input type="text" placeholder="Nome da coluna" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+                <button type="button" onclick="removeKanbanColumn(this)" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(column);
+        }
+
+        function removeKanbanColumn(button) {
+            button.closest('div').remove();
+        }
+
+        // Category toggle
+        function toggleCategory(button) {
+            if (button.classList.contains('bg-blue-100')) {
+                button.classList.remove('bg-blue-100', 'text-blue-700');
+                button.classList.add('bg-gray-100', 'text-gray-700');
+            } else {
+                button.classList.remove('bg-gray-100', 'text-gray-700');
+                button.classList.add('bg-blue-100', 'text-blue-700');
+            }
+        }
+
+        // Flow stage management
+        function addFlowStage() {
+            const container = document.getElementById('flowStages');
+            const stage = document.createElement('div');
+            stage.className = 'flow-stage';
+            stage.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <input type="text" placeholder="Nome da etapa" class="font-medium text-sm bg-transparent border-none outline-none">
+                    <button type="button" onclick="removeFlowStage(this)" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-trash text-sm"></i>
+                    </button>
+                </div>
+                <div class="space-y-2">
+                    <div class="text-xs text-gray-600">Tarefas desta etapa:</div>
+                    <div class="space-y-1">
+                        <input type="text" placeholder="Nova tarefa..." class="w-full text-xs px-2 py-1 border border-gray-300 rounded">
+                    </div>
+                </div>
+            `;
+            container.appendChild(stage);
+        }
+
+        function removeFlowStage(button) {
+            button.closest('.flow-stage').remove();
+        }
+
+        // Team member management
+        function addTeamMember() {
+            const container = document.querySelector('#equipeModal .space-y-3');
+            const member = document.createElement('div');
+            member.className = 'flex items-center space-x-3 p-3 bg-gray-50 rounded-lg';
+            member.innerHTML = `
+                <select class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option>Selecione um usuário</option>
+                    <option>João Silva</option>
+                    <option>Ana Santos</option>
+                    <option>Carlos Oliveira</option>
+                    <option>Maria Costa</option>
+                </select>
+                <select class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option>Função</option>
+                    <option>Desenvolvedor</option>
+                    <option>Designer</option>
+                    <option>Gerente</option>
+                    <option>Analista</option>
+                </select>
+                <button type="button" onclick="removeTeamMember(this)" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(member);
+        }
+
+        function removeTeamMember(button) {
+            button.closest('div').remove();
+        }
+
+        // Form submissions
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                // Get modal title to determine type
+                const modal = form.closest('.fixed');
+                const modalTitle = modal.querySelector('h2').textContent;
+                
+                // Show success message
+                const message = document.createElement('div');
+                message.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 fade-in';
+                message.textContent = `${modalTitle.replace('Nov', 'Criad')} com sucesso!`;
+                document.body.appendChild(message);
+                
+                // Close modal
+                closeModal(modal.id);
+                
+                // Remove message after 3 seconds
+                setTimeout(() => {
+                    message.remove();
+                }, 3000);
+            });
+        });
+
+        // Mobile responsiveness
+        function handleResize() {
+            if (window.innerWidth < 768) {
+                if (sidebarExpanded) {
+                    toggleBtn.click();
+                }
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Check on load
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97a8b63f87e16295',t:'MTc1NzEwNjYxMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
